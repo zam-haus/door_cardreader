@@ -1,0 +1,7 @@
+services:
+  nfc:
+    build: .
+    privileged: true
+    volumes:
+      - "/etc/nfc/libnfc.conf:/etc/nfc/libnfc.conf:ro"
+      - "./keys:/app/build/keys:ro"
