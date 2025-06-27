@@ -174,23 +174,29 @@ int main(int argc, char *argv[]) {
             throw ExitException(EXIT_FAILURE, "nfc_open() failed.");
         auto device_guard = ScopeGuard([&]() { nfc_close(device); });
 
-        FreefareTag *tags = freefare_get_tags(device);
-        if (!tags)
-            throw ExitException(EXIT_FAILURE, "Error listing tags.");
-        auto tags_guard = ScopeGuard([&]() { freefare_free_tags(tags); });
 
+        FreefareTag *tags = nullptr;
+        auto tags_guard = ScopeGuard([&]() {  if (tags) freefare_free_tags(tags); });
         FreefareTag tag = nullptr;
-        for (int i = 0; tags[i]; i++) {
-            if (freefare_get_tag_type(tags[i]) == MIFARE_DESFIRE) {
-                tag = tags[i];
-                break;
-            } else {
-                std::cerr << "Skipping tag of type: " << freefare_get_tag_type(tags[i]) << std::endl;
+        std::cerr << "Searching for MIFARE DESFire tags..." << std::endl;
+        while (!tag) {
+            if (tags)
+                freefare_free_tags(tags);
+            tags = freefare_get_tags(device);
+            if (!tags)
+                throw ExitException(EXIT_FAILURE, "Error listing tags.");
+
+            for (int i = 0; tags[i]; i++) {
+                if (freefare_get_tag_type(tags[i]) == MIFARE_DESFIRE) {
+                    tag = tags[i];
+                    break;
+                } else {
+                    std::cerr << "Skipping tag of type: " << freefare_get_tag_type(tags[i]) << std::endl;
+                }
             }
         }
-        if (!tag) {
-            throw ExitException(EXIT_FAILURE, "No MIFARE DESFire tag found.");
-        }
+        std::cerr << "Found MIFARE DESFire tag. Connecting..." << std::endl;
+
 
         if (print_error_code(mifare_desfire_connect(tag), tag) < 0)
             throw ExitException(EXIT_FAILURE, "Can't connect to DESFire tag.");
@@ -208,31 +214,39 @@ int main(int argc, char *argv[]) {
         std::cerr << "Changing application master key..." << std::endl;
         change_app_key_and_authenticate(tag, app1_master_key_file, app1_master_key_file, 0);
 
-        uint8_t FILE_ID = 0x01;
-        // Create a read-only standard data file
-        uint8_t comm_settings = 0b11; // CMAC (bit 0) and encrypted (bit 1) communication
-        // Each of the access rights defines what key is needed for the specific access.
-        // Key 0-13 are numbers, but 14 means free access and 15 means no access.
-        uint16_t access_rights = MDAR(/*r*/MDAR_FREE,/*w*/1,/*rw*/1,/*change access rights*/0);
         // Generate 32 random bytes
         std::vector<uint8_t> secret = random_data_vector(32);
 
-        if (mifare_desfire_create_std_data_file(tag, FILE_ID, comm_settings, access_rights, secret.size()) < 0) {
-            // Ignore if already exists
-            std::cerr << "Failed to create data file." << std::endl;
-        } else {
-            std::cerr << "Successfully created data file." << std::endl;
+
+        // Create standard data files with IDs 2-14 read-writable by key 1 and readable by key number == file id
+        for (int i = 2; i <= 14; ++i) {
+            uint8_t FILE_ID = i;
+            // Create a read-only standard data file
+            uint8_t comm_settings = 0b11; // CMAC (bit 0) and encrypted (bit 1) communication
+            // Each of the access rights defines what key is needed for the specific access.
+            // Key 0-13 are numbers, but 14 means free access and 15 means no access.
+            uint16_t access_rights = MDAR(/*r*/i,/*w*/1,/*rw*/1,/*change access rights*/0);
+
+            if (mifare_desfire_create_std_data_file(tag, FILE_ID, comm_settings, access_rights, secret.size()) < 0) {
+                // Ignore if already exists
+                std::cerr << "Failed to create data file." << std::endl;
+            } else {
+                std::cerr << "Successfully created data file." << std::endl;
+            }
         }
 
         std::cerr << "Changing application read-write key..." << std::endl;
         change_app_key_and_authenticate(tag, app1_rw_key_file, app1_master_key_file, 1);
+        for (int i = 2; i <= 14; ++i) {
+            uint8_t FILE_ID = i;
 
-        // Write the random secret to the file
-        if (mifare_desfire_write_data(tag, FILE_ID, 0, secret.size(), secret.data()) != secret.size()) {
-            throw ExitException(EXIT_FAILURE, "Failed to write secret to data file.");
+            // Write the random secret to the file
+            if (mifare_desfire_write_data(tag, FILE_ID, 0, secret.size(), secret.data()) != secret.size()) {
+                throw ExitException(EXIT_FAILURE, "Failed to write secret to data file.");
+            }
+
+            std::cerr << "Random 32-byte secret written to file." << std::endl;
         }
-
-        std::cerr << "Random 32-byte secret written to file." << std::endl;
 
         // Change keys ./keys/app1.r2.key to ./keys/app1.r13.key
         for (uint8_t key_no = 2; key_no <= 13; ++key_no) {

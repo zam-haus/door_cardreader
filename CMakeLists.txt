@@ -17,7 +17,7 @@ add_executable(read
         exceptions.cpp exceptions.h
         freefare_errorcodes.h
         keyfile.h)
-target_link_libraries(read libfreefare.so libnfc.so)
+target_link_libraries(read libfreefare.so libnfc.so docopt)
 
 add_executable(install-application
         install-application.cpp
@@ -44,8 +44,9 @@ target_link_libraries(format libfreefare.so libnfc.so)
 #configure_file(keys/app1.master.key keys/app1.master.key COPYONLY)
 #configure_file(keys/app1.rw1.key keys/app1.rw1.key COPYONLY)
 
+include_directories(PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/docopt.cpp)
 #target_include_directories(nfcurl PUBLIC
 #        ${CMAKE_CURRENT_SOURCE_DIR}/NDEF
 #)
 
-#add_subdirectory(NDEF)
+add_subdirectory(docopt.cpp)
