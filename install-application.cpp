@@ -144,9 +144,10 @@ void change_app_key_and_authenticate
     }
     // Set app key to AES_KEY
     if (print_error_code(mifare_desfire_change_key(tag, key_no, app1_key, nullptr), tag) < 0) {
-        throw ExitException(EXIT_FAILURE, "Failed to change application key.");
+        std::cerr << "Failed to change application key." << std::endl;
+    } else {
+        std::cerr << "Change key successfully." << std::endl;
     }
-    std::cerr << "Change key successfully." << std::endl;
     if (print_error_code(mifare_desfire_authenticate(tag, key_no, app1_key), tag) < 0)
         throw ExitException(EXIT_FAILURE, "Failed to authenticate with new app key.");
     std::cerr << "Authenticated with new app key." << std::endl;
@@ -176,7 +177,7 @@ int main(int argc, char *argv[]) {
 
 
         FreefareTag *tags = nullptr;
-        auto tags_guard = ScopeGuard([&]() {  if (tags) freefare_free_tags(tags); });
+        auto tags_guard = ScopeGuard([&]() { if (tags) freefare_free_tags(tags); });
         FreefareTag tag = nullptr;
         std::cerr << "Searching for MIFARE DESFire tags..." << std::endl;
         while (!tag) {
