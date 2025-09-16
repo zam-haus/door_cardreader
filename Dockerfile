@@ -18,7 +18,10 @@ RUN autoreconf -vis && \
     make install
 
 WORKDIR /app
-COPY *.cpp *.h CMakeLists.txt ./
+ADD https://github.com/docopt/docopt.cpp.git ./docopt.cpp
+ADD CMakeLists.txt ./
+ADD src/ ./src
+RUN ls -la ./
 WORKDIR /app/build
 RUN cmake .. -G Ninja && \
     cmake --build . -j$(nproc)

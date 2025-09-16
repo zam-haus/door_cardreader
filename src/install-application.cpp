@@ -18,7 +18,7 @@
 #include "ScopeGuard.h"
 #include "freefare_errorcodes.h"
 #include "exceptions.h"
-#include "../keyfile.h"
+#include "keyfile.h"
 
 const std::string picc_master_key_file = "./keys/picc.master.key";
 const std::string app1_master_key_file = "./keys/app1.master.key";

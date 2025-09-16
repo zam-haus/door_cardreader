@@ -2,7 +2,7 @@
 // Created by phi1010 on 6/25/25.
 //
 
-#include "../exceptions.h"
+#include "exceptions.h"
 #include <cstdarg>
 #include <stdexcept>
 #include <vector>

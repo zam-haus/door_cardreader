@@ -2,7 +2,7 @@
 // Created by phi1010 on 6/25/25.
 //
 
-#include "../ScopeGuard.h"
+#include "ScopeGuard.h"
 #include <utility>
 
 ScopeGuard::ScopeGuard(std::function<void()> fn)

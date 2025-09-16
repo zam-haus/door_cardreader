@@ -16,7 +16,7 @@
 #include <stdexcept>
 
 #include "ScopeGuard.h"
-#include "../freefare_errorcodes.h"
+#include "freefare_errorcodes.h"
 #include "exceptions.h"
 #include "keyfile.h"
 
